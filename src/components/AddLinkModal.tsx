@@ -17,7 +17,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Link as LinkIcon, Tag, FileText, Loader2 } from "lucide-react";
-import type { SavedItem } from "./SavedCard";
+import type { Database } from "@/integrations/supabase/types";
+
+type PlatformType = Database["public"]["Enums"]["platform_type"];
+
+interface SavedItem {
+  id: string;
+  title: string;
+  url: string;
+  platform: PlatformType;
+  thumbnail?: string;
+  notes?: string;
+  tags: string[];
+  createdAt: Date;
+}
 
 interface AddLinkModalProps {
   isOpen: boolean;
@@ -25,7 +38,7 @@ interface AddLinkModalProps {
   onSave: (item: Omit<SavedItem, "id" | "createdAt">) => void;
 }
 
-const platformOptions = [
+const platformOptions: { value: PlatformType; label: string }[] = [
   { value: "instagram", label: "Instagram" },
   { value: "youtube", label: "YouTube" },
   { value: "twitter", label: "Twitter" },
@@ -34,7 +47,7 @@ const platformOptions = [
   { value: "other", label: "Other" },
 ];
 
-const detectPlatform = (url: string): SavedItem["platform"] => {
+const detectPlatform = (url: string): PlatformType => {
   const lowerUrl = url.toLowerCase();
   if (lowerUrl.includes("instagram.com")) return "instagram";
   if (lowerUrl.includes("youtube.com") || lowerUrl.includes("youtu.be")) return "youtube";
@@ -48,7 +61,7 @@ const AddLinkModal = ({ isOpen, onClose, onSave }: AddLinkModalProps) => {
   const [formData, setFormData] = useState({
     url: "",
     title: "",
-    platform: "" as SavedItem["platform"] | "",
+    platform: "" as PlatformType | "",
     notes: "",
     tags: "",
   });
@@ -65,14 +78,11 @@ const AddLinkModal = ({ isOpen, onClose, onSave }: AddLinkModalProps) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate saving
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
     onSave({
       url: formData.url,
       title: formData.title || "Untitled",
-      platform: (formData.platform || "other") as SavedItem["platform"],
-      notes: formData.notes,
+      platform: (formData.platform || "other") as PlatformType,
+      notes: formData.notes || undefined,
       tags: formData.tags.split(",").map((t) => t.trim()).filter(Boolean),
     });
 
@@ -124,7 +134,7 @@ const AddLinkModal = ({ isOpen, onClose, onSave }: AddLinkModalProps) => {
             <Label htmlFor="platform">Platform</Label>
             <Select
               value={formData.platform}
-              onValueChange={(value) => setFormData({ ...formData, platform: value as SavedItem["platform"] })}
+              onValueChange={(value) => setFormData({ ...formData, platform: value as PlatformType })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Auto-detect or select" />

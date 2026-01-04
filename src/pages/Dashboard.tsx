@@ -1,93 +1,95 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Flame, Plus, LogOut, LayoutGrid, List } from "lucide-react";
-import SavedCard, { SavedItem } from "@/components/SavedCard";
+import { Flame, Plus, LogOut, LayoutGrid, List, Loader2 } from "lucide-react";
+import SavedCard from "@/components/SavedCard";
 import SearchBar from "@/components/SearchBar";
 import AddLinkModal from "@/components/AddLinkModal";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
-// Demo data
-const demoItems: SavedItem[] = [
-  {
-    id: "1",
-    title: "Easy 15-Minute Pasta Recipe",
-    url: "https://instagram.com/p/example1",
-    platform: "instagram",
-    thumbnail: "https://images.unsplash.com/photo-1551892374-ecf8754cf8b0?w=400",
-    notes: "Perfect for weeknight dinners",
-    tags: ["recipes", "quick meals"],
-    createdAt: new Date("2026-01-03"),
-  },
-  {
-    id: "2",
-    title: "React Tutorial for Beginners",
-    url: "https://youtube.com/watch?v=example2",
-    platform: "youtube",
-    thumbnail: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400",
-    notes: "Great explanation of hooks",
-    tags: ["learning", "code"],
-    createdAt: new Date("2026-01-02"),
-  },
-  {
-    id: "3",
-    title: "Nike Air Max 2026 - White/Blue",
-    url: "https://amazon.com/dp/example3",
-    platform: "shopping",
-    thumbnail: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400",
-    notes: "Size 10, wait for sale",
-    tags: ["wishlist", "shoes"],
-    createdAt: new Date("2026-01-01"),
-  },
-  {
-    id: "4",
-    title: "The Future of AI in 2026",
-    url: "https://techcrunch.com/article/example4",
-    platform: "article",
-    thumbnail: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400",
-    notes: "Interesting predictions about AGI",
-    tags: ["tech", "ai"],
-    createdAt: new Date("2025-12-30"),
-  },
-  {
-    id: "5",
-    title: "Morning Routine Inspiration",
-    url: "https://instagram.com/p/example5",
-    platform: "instagram",
-    notes: "5am club content",
-    tags: ["productivity", "wellness"],
-    createdAt: new Date("2025-12-28"),
-  },
-  {
-    id: "6",
-    title: "How to Style a Small Living Room",
-    url: "https://youtube.com/watch?v=example6",
-    platform: "youtube",
-    thumbnail: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400",
-    tags: ["home", "design"],
-    createdAt: new Date("2025-12-25"),
-  },
-];
+type SavedLink = Database["public"]["Tables"]["saved_links"]["Row"];
+type PlatformType = Database["public"]["Enums"]["platform_type"];
+
+interface SavedItem {
+  id: string;
+  title: string;
+  url: string;
+  platform: PlatformType;
+  thumbnail?: string;
+  notes?: string;
+  tags: string[];
+  createdAt: Date;
+}
 
 const Dashboard = () => {
-  const [items, setItems] = useState<SavedItem[]>(demoItems);
+  const navigate = useNavigate();
+  const { user, isLoading: authLoading, signOut } = useAuth();
+  
+  const [items, setItems] = useState<SavedItem[]>([]);
+  const [isLoadingItems, setIsLoadingItems] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/auth");
+    }
+  }, [user, authLoading, navigate]);
+
+  // Fetch saved links
+  useEffect(() => {
+    const fetchLinks = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from("saved_links")
+          .select("*")
+          .order("created_at", { ascending: false });
+        
+        if (error) throw error;
+        
+        const mappedItems: SavedItem[] = (data || []).map((link: SavedLink) => ({
+          id: link.id,
+          title: link.title,
+          url: link.url,
+          platform: link.platform,
+          thumbnail: link.thumbnail || undefined,
+          notes: link.notes || undefined,
+          tags: link.tags || [],
+          createdAt: new Date(link.created_at),
+        }));
+        
+        setItems(mappedItems);
+      } catch (error) {
+        console.error("Error fetching links:", error);
+        toast.error("Failed to load your saved links");
+      } finally {
+        setIsLoadingItems(false);
+      }
+    };
+    
+    if (user) {
+      fetchLinks();
+    }
+  }, [user]);
+
   // Filter items
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      // Search filter
       const matchesSearch =
         !searchQuery ||
         item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.notes?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      // Platform filter
       const matchesPlatform =
         selectedPlatforms.length === 0 || selectedPlatforms.includes(item.platform);
 
@@ -103,22 +105,79 @@ const Dashboard = () => {
     );
   };
 
-  const handleAddItem = (newItem: Omit<SavedItem, "id" | "createdAt">) => {
-    const item: SavedItem = {
-      ...newItem,
-      id: Date.now().toString(),
-      createdAt: new Date(),
-    };
-    setItems((prev) => [item, ...prev]);
-    toast.success("Link saved!", {
-      description: "Your link has been added to your collection.",
-    });
+  const handleAddItem = async (newItem: Omit<SavedItem, "id" | "createdAt">) => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("saved_links")
+        .insert({
+          user_id: user.id,
+          title: newItem.title,
+          url: newItem.url,
+          platform: newItem.platform,
+          thumbnail: newItem.thumbnail || null,
+          notes: newItem.notes || null,
+          tags: newItem.tags,
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      const item: SavedItem = {
+        id: data.id,
+        title: data.title,
+        url: data.url,
+        platform: data.platform,
+        thumbnail: data.thumbnail || undefined,
+        notes: data.notes || undefined,
+        tags: data.tags || [],
+        createdAt: new Date(data.created_at),
+      };
+      
+      setItems((prev) => [item, ...prev]);
+      toast.success("Link saved!", {
+        description: "Your link has been added to your collection.",
+      });
+    } catch (error) {
+      console.error("Error saving link:", error);
+      toast.error("Failed to save link", {
+        description: "Please try again.",
+      });
+    }
   };
 
-  const handleDeleteItem = (id: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
-    toast.success("Link deleted");
+  const handleDeleteItem = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("saved_links")
+        .delete()
+        .eq("id", id);
+      
+      if (error) throw error;
+      
+      setItems((prev) => prev.filter((item) => item.id !== id));
+      toast.success("Link deleted");
+    } catch (error) {
+      console.error("Error deleting link:", error);
+      toast.error("Failed to delete link");
+    }
   };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+    toast.success("Signed out successfully");
+  };
+
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -148,10 +207,8 @@ const Dashboard = () => {
                   <Plus className="w-4 h-4" />
                   <span className="hidden sm:inline">Add link</span>
                 </Button>
-                <Button variant="ghost" size="icon" asChild>
-                  <Link to="/">
-                    <LogOut className="w-4 h-4" />
-                  </Link>
+                <Button variant="ghost" size="icon" onClick={handleSignOut}>
+                  <LogOut className="w-4 h-4" />
                 </Button>
               </div>
             </div>
@@ -198,8 +255,12 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Items grid/list */}
-          {filteredItems.length > 0 ? (
+          {/* Loading state */}
+          {isLoadingItems ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : filteredItems.length > 0 ? (
             <div
               className={
                 viewMode === "grid"
