@@ -6,12 +6,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { Database } from "@/integrations/supabase/types";
+
+type PlatformType = Database["public"]["Enums"]["platform_type"];
 
 export interface SavedItem {
   id: string;
   title: string;
   url: string;
-  platform: "instagram" | "youtube" | "twitter" | "shopping" | "article" | "other";
+  platform: PlatformType;
   thumbnail?: string;
   notes?: string;
   tags: string[];
@@ -24,7 +27,7 @@ interface SavedCardProps {
   onDelete?: (id: string) => void;
 }
 
-const platformConfig = {
+const platformConfig: Record<PlatformType, { color: string; label: string }> = {
   instagram: { color: "bg-platform-instagram", label: "Instagram" },
   youtube: { color: "bg-platform-youtube", label: "YouTube" },
   twitter: { color: "bg-platform-twitter", label: "Twitter" },

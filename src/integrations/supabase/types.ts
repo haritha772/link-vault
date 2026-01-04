@@ -14,7 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      saved_links: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          platform: Database["public"]["Enums"]["platform_type"]
+          tags: string[] | null
+          thumbnail: string | null
+          title: string
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          platform?: Database["public"]["Enums"]["platform_type"]
+          tags?: string[] | null
+          thumbnail?: string | null
+          title: string
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          platform?: Database["public"]["Enums"]["platform_type"]
+          tags?: string[] | null
+          thumbnail?: string | null
+          title?: string
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +88,13 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      platform_type:
+        | "instagram"
+        | "youtube"
+        | "twitter"
+        | "shopping"
+        | "article"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +221,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      platform_type: [
+        "instagram",
+        "youtube",
+        "twitter",
+        "shopping",
+        "article",
+        "other",
+      ],
+    },
   },
 } as const
