@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      collections: {
+        Row: {
+          color: string
+          created_at: string
+          description: string | null
+          icon: string
+          id: string
+          is_public: boolean
+          is_smart: boolean
+          name: string
+          share_slug: string | null
+          smart_criteria: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          is_public?: boolean
+          is_smart?: boolean
+          name: string
+          share_slug?: string | null
+          smart_criteria?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          is_public?: boolean
+          is_smart?: boolean
+          name?: string
+          share_slug?: string | null
+          smart_criteria?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -43,10 +88,18 @@ export type Database = {
       }
       saved_links: {
         Row: {
+          ai_tags: string[] | null
+          collection_id: string | null
           created_at: string
+          favicon: string | null
           id: string
+          is_highlighted: boolean
           notes: string | null
+          og_description: string | null
+          og_image: string | null
           platform: Database["public"]["Enums"]["platform_type"]
+          reminder_at: string | null
+          summary: string | null
           tags: string[] | null
           thumbnail: string | null
           title: string
@@ -55,10 +108,18 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_tags?: string[] | null
+          collection_id?: string | null
           created_at?: string
+          favicon?: string | null
           id?: string
+          is_highlighted?: boolean
           notes?: string | null
+          og_description?: string | null
+          og_image?: string | null
           platform?: Database["public"]["Enums"]["platform_type"]
+          reminder_at?: string | null
+          summary?: string | null
           tags?: string[] | null
           thumbnail?: string | null
           title: string
@@ -67,10 +128,18 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_tags?: string[] | null
+          collection_id?: string | null
           created_at?: string
+          favicon?: string | null
           id?: string
+          is_highlighted?: boolean
           notes?: string | null
+          og_description?: string | null
+          og_image?: string | null
           platform?: Database["public"]["Enums"]["platform_type"]
+          reminder_at?: string | null
+          summary?: string | null
           tags?: string[] | null
           thumbnail?: string | null
           title?: string
@@ -78,7 +147,15 @@ export type Database = {
           url?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_saved_links_collection"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "collections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
