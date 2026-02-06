@@ -17,25 +17,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Link as LinkIcon, Tag, FileText, Loader2 } from "lucide-react";
-import type { Database } from "@/integrations/supabase/types";
-
-type PlatformType = Database["public"]["Enums"]["platform_type"];
-
-interface SavedItem {
-  id: string;
-  title: string;
-  url: string;
-  platform: PlatformType;
-  thumbnail?: string;
-  notes?: string;
-  tags: string[];
-  createdAt: Date;
-}
+import type { SavedItem, PlatformType } from "@/types/saved-item";
 
 interface AddLinkModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (item: Omit<SavedItem, "id" | "createdAt">) => void;
+  onSave: (item: Omit<SavedItem, "id" | "createdAt" | "isHighlighted">) => void;
 }
 
 const platformOptions: { value: PlatformType; label: string }[] = [

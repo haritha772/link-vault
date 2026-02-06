@@ -1,38 +1,44 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Flame, Plus, LogOut, LayoutGrid, List, Loader2 } from "lucide-react";
 import SavedCard from "@/components/SavedCard";
 import SearchBar from "@/components/SearchBar";
+import AiSearchBar from "@/components/AiSearchBar";
 import AddLinkModal from "@/components/AddLinkModal";
+import CollectionsSidebar from "@/components/CollectionsSidebar";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
-
-type SavedLink = Database["public"]["Tables"]["saved_links"]["Row"];
-type PlatformType = Database["public"]["Enums"]["platform_type"];
-
-interface SavedItem {
-  id: string;
-  title: string;
-  url: string;
-  platform: PlatformType;
-  thumbnail?: string;
-  notes?: string;
-  tags: string[];
-  createdAt: Date;
-}
+import { useSavedLinks } from "@/hooks/useSavedLinks";
+import { useCollections } from "@/hooks/useCollections";
+import { useAiSearch } from "@/hooks/useAiSearch";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading, signOut } = useAuth();
-  
-  const [items, setItems] = useState<SavedItem[]>([]);
-  const [isLoadingItems, setIsLoadingItems] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+
+  const {
+    items,
+    filteredItems,
+    isLoading: isLoadingItems,
+    searchQuery,
+    setSearchQuery,
+    selectedPlatforms,
+    handlePlatformToggle,
+    selectedCollection,
+    setSelectedCollection,
+    showHighlightsOnly,
+    setShowHighlightsOnly,
+    addItem,
+    deleteItem,
+    toggleHighlight,
+    setReminder,
+  } = useSavedLinks(user?.id);
+
+  const { collections, createCollection, deleteCollection } = useCollections(user?.id);
+  const { isSearching, result: aiResult, search: aiSearch, clearResult: clearAiResult } = useAiSearch();
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
@@ -43,133 +49,18 @@ const Dashboard = () => {
     }
   }, [user, authLoading, navigate]);
 
-  // Fetch saved links
-  useEffect(() => {
-    const fetchLinks = async () => {
-      if (!user) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from("saved_links")
-          .select("*")
-          .order("created_at", { ascending: false });
-        
-        if (error) throw error;
-        
-        const mappedItems: SavedItem[] = (data || []).map((link: SavedLink) => ({
-          id: link.id,
-          title: link.title,
-          url: link.url,
-          platform: link.platform,
-          thumbnail: link.thumbnail || undefined,
-          notes: link.notes || undefined,
-          tags: link.tags || [],
-          createdAt: new Date(link.created_at),
-        }));
-        
-        setItems(mappedItems);
-      } catch (error) {
-        console.error("Error fetching links:", error);
-        toast.error("Failed to load your saved links");
-      } finally {
-        setIsLoadingItems(false);
-      }
-    };
-    
-    if (user) {
-      fetchLinks();
-    }
-  }, [user]);
-
-  // Filter items
-  const filteredItems = useMemo(() => {
-    return items.filter((item) => {
-      const matchesSearch =
-        !searchQuery ||
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.notes?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-
-      const matchesPlatform =
-        selectedPlatforms.length === 0 || selectedPlatforms.includes(item.platform);
-
-      return matchesSearch && matchesPlatform;
-    });
-  }, [items, searchQuery, selectedPlatforms]);
-
-  const handlePlatformToggle = (platform: string) => {
-    setSelectedPlatforms((prev) =>
-      prev.includes(platform)
-        ? prev.filter((p) => p !== platform)
-        : [...prev, platform]
-    );
-  };
-
-  const handleAddItem = async (newItem: Omit<SavedItem, "id" | "createdAt">) => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from("saved_links")
-        .insert({
-          user_id: user.id,
-          title: newItem.title,
-          url: newItem.url,
-          platform: newItem.platform,
-          thumbnail: newItem.thumbnail || null,
-          notes: newItem.notes || null,
-          tags: newItem.tags,
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      const item: SavedItem = {
-        id: data.id,
-        title: data.title,
-        url: data.url,
-        platform: data.platform,
-        thumbnail: data.thumbnail || undefined,
-        notes: data.notes || undefined,
-        tags: data.tags || [],
-        createdAt: new Date(data.created_at),
-      };
-      
-      setItems((prev) => [item, ...prev]);
-      toast.success("Link saved!", {
-        description: "Your link has been added to your collection.",
-      });
-    } catch (error) {
-      console.error("Error saving link:", error);
-      toast.error("Failed to save link", {
-        description: "Please try again.",
-      });
-    }
-  };
-
-  const handleDeleteItem = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from("saved_links")
-        .delete()
-        .eq("id", id);
-      
-      if (error) throw error;
-      
-      setItems((prev) => prev.filter((item) => item.id !== id));
-      toast.success("Link deleted");
-    } catch (error) {
-      console.error("Error deleting link:", error);
-      toast.error("Failed to delete link");
-    }
-  };
-
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
     toast.success("Signed out successfully");
   };
+
+  const highlightedCount = items.filter((i) => i.isHighlighted).length;
+
+  // Determine which items to show
+  const displayItems = aiResult?.matchedIds.length
+    ? filteredItems
+    : filteredItems;
 
   if (authLoading || !user) {
     return (
@@ -191,7 +82,6 @@ const Dashboard = () => {
         <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
           <div className="container mx-auto px-4">
             <div className="flex items-center justify-between h-16">
-              {/* Logo */}
               <Link to="/" className="flex items-center gap-2">
                 <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center shadow-md">
                   <Flame className="w-5 h-5 text-primary-foreground" />
@@ -201,7 +91,6 @@ const Dashboard = () => {
                 </span>
               </Link>
 
-              {/* Actions */}
               <div className="flex items-center gap-3">
                 <Button onClick={() => setIsAddModalOpen(true)} className="gap-2">
                   <Plus className="w-4 h-4" />
@@ -218,7 +107,7 @@ const Dashboard = () => {
         {/* Main content */}
         <main className="container mx-auto px-4 py-8">
           {/* Page header */}
-          <div className="mb-8">
+          <div className="mb-6">
             <h1 className="font-display text-3xl font-bold text-foreground mb-2">
               Your saves
             </h1>
@@ -227,16 +116,24 @@ const Dashboard = () => {
             </p>
           </div>
 
+          {/* AI Search */}
+          <div className="mb-6">
+            <AiSearchBar
+              isSearching={isSearching}
+              result={aiResult}
+              onSearch={aiSearch}
+              onClear={clearAiResult}
+            />
+          </div>
+
           {/* Search and filters */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <SearchBar
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               selectedPlatforms={selectedPlatforms}
               onPlatformToggle={handlePlatformToggle}
             />
-
-            {/* View toggle */}
             <div className="flex items-center gap-1 bg-secondary rounded-lg p-1">
               <Button
                 variant={viewMode === "grid" ? "default" : "ghost"}
@@ -255,55 +152,74 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Loading state */}
-          {isLoadingItems ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          {/* Layout with sidebar */}
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Collections sidebar */}
+            <CollectionsSidebar
+              collections={collections}
+              selectedCollection={selectedCollection}
+              showHighlightsOnly={showHighlightsOnly}
+              onSelectCollection={setSelectedCollection}
+              onToggleHighlights={setShowHighlightsOnly}
+              onCreateCollection={createCollection}
+              onDeleteCollection={deleteCollection}
+              totalItems={items.length}
+              highlightedCount={highlightedCount}
+            />
+
+            {/* Content area */}
+            <div className="flex-1 min-w-0">
+              {isLoadingItems ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : displayItems.length > 0 ? (
+                <div
+                  className={
+                    viewMode === "grid"
+                      ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"
+                      : "flex flex-col gap-4"
+                  }
+                >
+                  {displayItems.map((item) => (
+                    <SavedCard
+                      key={item.id}
+                      item={item}
+                      onDelete={deleteItem}
+                      onToggleHighlight={toggleHighlight}
+                      isAiMatch={aiResult?.matchedIds.includes(item.id)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16">
+                  <div className="w-16 h-16 bg-secondary rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Flame className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <h2 className="font-display text-xl font-semibold text-foreground mb-2">
+                    {searchQuery || selectedPlatforms.length > 0 || selectedCollection || showHighlightsOnly
+                      ? "No results found"
+                      : "No saves yet"}
+                  </h2>
+                  <p className="text-muted-foreground mb-6">
+                    {searchQuery || selectedPlatforms.length > 0
+                      ? "Try adjusting your search or filters"
+                      : "Start by saving your first link"}
+                  </p>
+                  <Button onClick={() => setIsAddModalOpen(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add your first link
+                  </Button>
+                </div>
+              )}
             </div>
-          ) : filteredItems.length > 0 ? (
-            <div
-              className={
-                viewMode === "grid"
-                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                  : "flex flex-col gap-4"
-              }
-            >
-              {filteredItems.map((item) => (
-                <SavedCard
-                  key={item.id}
-                  item={item}
-                  onDelete={handleDeleteItem}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <div className="w-16 h-16 bg-secondary rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Flame className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <h2 className="font-display text-xl font-semibold text-foreground mb-2">
-                {searchQuery || selectedPlatforms.length > 0
-                  ? "No results found"
-                  : "No saves yet"}
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                {searchQuery || selectedPlatforms.length > 0
-                  ? "Try adjusting your search or filters"
-                  : "Start by saving your first link"}
-              </p>
-              <Button onClick={() => setIsAddModalOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add your first link
-              </Button>
-            </div>
-          )}
+          </div>
         </main>
 
-        {/* Add modal */}
         <AddLinkModal
           isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}
-          onSave={handleAddItem}
+          onSave={addItem}
         />
       </div>
     </>
