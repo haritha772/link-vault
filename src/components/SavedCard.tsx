@@ -1,4 +1,5 @@
-import { ExternalLink, MoreVertical, Tag, Star, Clock, Sparkles, Globe } from "lucide-react";
+import { ExternalLink, MoreVertical, Tag, Star, Clock, Sparkles } from "lucide-react";
+import PlatformIcon from "@/components/PlatformIcon";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -101,7 +102,7 @@ const SavedCard = ({
           <div
             className={`w-12 h-12 ${config.color} rounded-xl opacity-50 ${item.favicon ? "hidden" : "flex"} items-center justify-center`}
           >
-            <Globe className="w-6 h-6 text-primary-foreground" />
+            <PlatformIcon platform={item.platform} size={24} className="text-primary-foreground" />
           </div>
           {item.isHighlighted && (
             <div className="absolute top-2 right-2">
@@ -116,7 +117,7 @@ const SavedCard = ({
         {/* Platform badge + actions */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <div className={`w-2.5 h-2.5 ${config.color} rounded-full`} />
+            <PlatformIcon platform={item.platform} size={14} className="text-muted-foreground" />
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               {config.label}
             </span>

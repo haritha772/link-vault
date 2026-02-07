@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Flame, ArrowLeft, Mail, Lock, User } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import GoogleSignInButton from "@/components/GoogleSignInButton";
 import { z } from "zod";
 
 const authSchema = z.object({
@@ -238,8 +239,33 @@ const Auth = () => {
               </Button>
             </form>
 
+            {/* Divider */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+              </div>
+            </div>
+
+            {/* Google Sign In */}
+            <GoogleSignInButton />
+
+            {/* Forgot password */}
+            {!isSignup && (
+              <p className="mt-4 text-center">
+                <Link
+                  to="/reset-password"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Forgot your password?
+                </Link>
+              </p>
+            )}
+
             {/* Toggle */}
-            <p className="mt-6 text-center text-muted-foreground">
+            <p className="mt-4 text-center text-muted-foreground">
               {isSignup ? "Already have an account?" : "Don't have an account?"}{" "}
               <button
                 type="button"
