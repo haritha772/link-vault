@@ -79,5 +79,32 @@ export const useCollections = (userId: string | undefined) => {
     }
   };
 
-  return { collections, isLoading, createCollection, deleteCollection };
+  const togglePublic = async (id: string, isPublic: boolean) => {
+    try {
+      const slug = isPublic
+        ? `${collections.find((c) => c.id === id)?.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${id.slice(0, 8)}`
+        : null;
+      const { error } = await supabase
+        .from("collections")
+        .update({ is_public: isPublic, share_slug: slug } as any)
+        .eq("id", id);
+      if (error) throw error;
+      setCollections((prev) =>
+        prev.map((c) =>
+          c.id === id ? { ...c, isPublic, shareSlug: slug || undefined } : c
+        )
+      );
+      if (isPublic && slug) {
+        navigator.clipboard.writeText(`${window.location.origin}/shared/${slug}`);
+        toast.success("Collection is now public! Share link copied.");
+      } else {
+        toast.success("Collection is now private.");
+      }
+    } catch (error) {
+      console.error("Error toggling public:", error);
+      toast.error("Failed to update collection");
+    }
+  };
+
+  return { collections, isLoading, createCollection, deleteCollection, togglePublic };
 };

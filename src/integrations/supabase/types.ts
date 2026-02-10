@@ -106,6 +106,7 @@ export type Database = {
           updated_at: string
           url: string
           user_id: string
+          view_count: number
         }
         Insert: {
           ai_tags?: string[] | null
@@ -126,6 +127,7 @@ export type Database = {
           updated_at?: string
           url: string
           user_id: string
+          view_count?: number
         }
         Update: {
           ai_tags?: string[] | null
@@ -146,6 +148,7 @@ export type Database = {
           updated_at?: string
           url?: string
           user_id?: string
+          view_count?: number
         }
         Relationships: [
           {

@@ -1,4 +1,4 @@
-import { Bookmark, Search, Tag, Smartphone, Zap, Shield } from "lucide-react";
+import { Bookmark, Search, Tag, Smartphone, Zap, Share2, Sparkles, Globe } from "lucide-react";
 
 const features = [
   {
@@ -7,29 +7,29 @@ const features = [
     description: "Capture links from Instagram, YouTube, TikTok, Amazon, and any website with one click.",
   },
   {
+    icon: Sparkles,
+    title: "AI auto-tagging",
+    description: "AI automatically summarizes, tags, and enriches every link you save. No manual work needed.",
+  },
+  {
     icon: Search,
-    title: "Instant search",
-    description: "Find any saved item in seconds with powerful search across titles, notes, and tags.",
+    title: "AI-powered search",
+    description: "Ask questions in natural language. Find 'that recipe video from last week' instantly.",
   },
   {
-    icon: Tag,
-    title: "Smart tagging",
-    description: "Organize your saves with custom tags and let AI auto-categorize your content.",
+    icon: Share2,
+    title: "Share collections",
+    description: "Make any collection public with a single click. Share curated link lists with anyone.",
   },
   {
-    icon: Smartphone,
+    icon: Globe,
     title: "Works everywhere",
-    description: "Access your collection on any device. Share from your phone, browse on desktop.",
+    description: "Access your collection on any device. Open saved links anytime, anywhere.",
   },
   {
     icon: Zap,
     title: "Lightning fast",
-    description: "Optimized for speed. Your content loads instantly, even with thousands of saves.",
-  },
-  {
-    icon: Shield,
-    title: "Private & secure",
-    description: "Your data is encrypted and never shared. You own your content, always.",
+    description: "Optimized for speed. Rich previews, instant search, and smart organization.",
   },
 ];
 
