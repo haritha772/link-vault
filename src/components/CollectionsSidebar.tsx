@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Folder, Plus, Star, Inbox, Trash2 } from "lucide-react";
+import { Folder, Plus, Star, Inbox, Trash2, Share2, Globe, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -8,6 +8,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 import type { Collection } from "@/types/saved-item";
 
 interface CollectionsSidebarProps {
@@ -18,6 +20,7 @@ interface CollectionsSidebarProps {
   onToggleHighlights: (show: boolean) => void;
   onCreateCollection: (name: string, color: string) => void;
   onDeleteCollection: (id: string) => void;
+  onTogglePublic?: (id: string, isPublic: boolean) => void;
   totalItems: number;
   highlightedCount: number;
 }
@@ -35,6 +38,7 @@ const CollectionsSidebar = ({
   onToggleHighlights,
   onCreateCollection,
   onDeleteCollection,
+  onTogglePublic,
   totalItems,
   highlightedCount,
 }: CollectionsSidebarProps) => {
@@ -107,35 +111,72 @@ const CollectionsSidebar = ({
 
           {/* Collections list */}
           {collections.map((collection) => (
-            <button
-              key={collection.id}
-              onClick={() => {
-                onSelectCollection(collection.id);
-                onToggleHighlights(false);
-              }}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors group ${
-                selectedCollection === collection.id
-                  ? "bg-primary/10 text-primary font-medium"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-              }`}
-            >
-              <div
-                className="w-3 h-3 rounded-full shrink-0"
-                style={{ backgroundColor: collection.color }}
-              />
-              <span className="flex-1 text-left truncate">{collection.name}</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteCollection(collection.id);
+            <div key={collection.id} className="group">
+              <button
+                onClick={() => {
+                  onSelectCollection(collection.id);
+                  onToggleHighlights(false);
                 }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
+                  selectedCollection === collection.id
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                }`}
               >
-                <Trash2 className="w-3 h-3 text-destructive" />
-              </Button>
-            </button>
+                <div
+                  className="w-3 h-3 rounded-full shrink-0"
+                  style={{ backgroundColor: collection.color }}
+                />
+                <span className="flex-1 text-left truncate">{collection.name}</span>
+                {collection.isPublic && (
+                  <Globe className="w-3 h-3 text-primary shrink-0" />
+                )}
+              </button>
+              <div className="flex items-center gap-0.5 px-3 opacity-0 group-hover:opacity-100 transition-opacity -mt-1 mb-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  title={collection.isPublic ? "Copy share link" : "Make public to share"}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (collection.isPublic && collection.shareSlug) {
+                      navigator.clipboard.writeText(`${window.location.origin}/shared/${collection.shareSlug}`);
+                      toast.success("Share link copied!");
+                    } else {
+                      onTogglePublic?.(collection.id, true);
+                    }
+                  }}
+                >
+                  <Share2 className="w-3 h-3" />
+                </Button>
+                {collection.isPublic && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    title="Make private"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onTogglePublic?.(collection.id, false);
+                    }}
+                  >
+                    <Lock className="w-3 h-3" />
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteCollection(collection.id);
+                  }}
+                >
+                  <Trash2 className="w-3 h-3 text-destructive" />
+                </Button>
+              </div>
+            </div>
           ))}
 
           {collections.length === 0 && (

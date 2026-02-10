@@ -1,4 +1,5 @@
-import { ExternalLink, MoreVertical, Tag, Star, Clock, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { ExternalLink, MoreVertical, Tag, Star, Clock, Sparkles, Copy, Check } from "lucide-react";
 import PlatformIcon from "@/components/PlatformIcon";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,10 +39,18 @@ const SavedCard = ({
   onSetReminder,
   isAiMatch,
 }: SavedCardProps) => {
+  const [copied, setCopied] = useState(false);
   const config = platformConfig[item.platform];
   const displayImage = item.ogImage || item.thumbnail;
   const allTags = [...item.tags, ...(item.aiTags || [])];
   const uniqueTags = [...new Set(allTags)];
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.preventDefault();
+    navigator.clipboard.writeText(item.url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <article
@@ -202,16 +211,30 @@ const SavedCard = ({
           </div>
         )}
 
-        {/* Link */}
-        <a
-          href={item.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-        >
-          Open link
-          <ExternalLink className="w-3 h-3" />
-        </a>
+        {/* Link + Copy */}
+        <div className="flex items-center gap-2">
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-sm text-primary hover:underline flex-1"
+          >
+            Open link
+            <ExternalLink className="w-3 h-3" />
+          </a>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={handleCopy}
+          >
+            {copied ? (
+              <Check className="w-3.5 h-3.5 text-primary" />
+            ) : (
+              <Copy className="w-3.5 h-3.5" />
+            )}
+          </Button>
+        </div>
       </div>
     </article>
   );

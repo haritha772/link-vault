@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Flame, Plus, LogOut, LayoutGrid, List, Loader2 } from "lucide-react";
+import { Flame, Plus, LogOut, LayoutGrid, List, Loader2, TrendingUp } from "lucide-react";
 import SavedCard from "@/components/SavedCard";
 import SearchBar from "@/components/SearchBar";
 import AiSearchBar from "@/components/AiSearchBar";
@@ -36,7 +36,7 @@ const Dashboard = () => {
     setReminder,
   } = useSavedLinks(user?.id);
 
-  const { collections, createCollection, deleteCollection } = useCollections(user?.id);
+  const { collections, createCollection, deleteCollection, togglePublic } = useCollections(user?.id);
   const { isSearching, result: aiResult, search: aiSearch, clearResult: clearAiResult } = useAiSearch();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -56,6 +56,19 @@ const Dashboard = () => {
   };
 
   const highlightedCount = items.filter((i) => i.isHighlighted).length;
+
+  // Trending tags
+  const trendingTags = useMemo(() => {
+    const tagCount: Record<string, number> = {};
+    items.forEach((item) => {
+      [...item.tags, ...(item.aiTags || [])].forEach((tag) => {
+        tagCount[tag] = (tagCount[tag] || 0) + 1;
+      });
+    });
+    return Object.entries(tagCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8);
+  }, [items]);
 
   // Determine which items to show
   const displayItems = aiResult?.matchedIds.length
@@ -116,6 +129,27 @@ const Dashboard = () => {
             </p>
           </div>
 
+          {/* Trending tags */}
+          {trendingTags.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium text-muted-foreground">Trending tags</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {trendingTags.map(([tag, count]) => (
+                  <button
+                    key={tag}
+                    onClick={() => setSearchQuery(tag)}
+                    className="text-xs px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors border border-primary/20"
+                  >
+                    {tag} <span className="opacity-60">({count})</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* AI Search */}
           <div className="mb-6">
             <AiSearchBar
@@ -163,6 +197,7 @@ const Dashboard = () => {
               onToggleHighlights={setShowHighlightsOnly}
               onCreateCollection={createCollection}
               onDeleteCollection={deleteCollection}
+              onTogglePublic={togglePublic}
               totalItems={items.length}
               highlightedCount={highlightedCount}
             />
