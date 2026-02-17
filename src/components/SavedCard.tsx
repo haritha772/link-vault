@@ -53,14 +53,12 @@ const SavedCard = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleOpenLink = () => {
-    window.open(item.url, "_blank", "noopener,noreferrer");
-  };
-
   return (
-    <article
-      onClick={handleOpenLink}
-      className={`group bg-card rounded-2xl border overflow-hidden hover:shadow-md transition-all duration-300 cursor-pointer ${
+    <a
+      href={item.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`block group bg-card rounded-2xl border overflow-hidden hover:shadow-md transition-all duration-300 cursor-pointer no-underline ${
         isAiMatch
           ? "border-primary/40 ring-2 ring-primary/20 shadow-glow"
           : item.isHighlighted
@@ -150,12 +148,12 @@ const SavedCard = ({
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
               >
                 <MoreVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuContent align="end" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
               <DropdownMenuItem onClick={() => onToggleHighlight?.(item.id)}>
                 <Star className="w-4 h-4 mr-2" />
                 {item.isHighlighted ? "Remove highlight" : "Highlight"}
@@ -219,7 +217,7 @@ const SavedCard = ({
         )}
 
         {/* Link + Copy */}
-        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
           <a
             href={item.url}
             target="_blank"
@@ -243,7 +241,7 @@ const SavedCard = ({
           </Button>
         </div>
       </div>
-    </article>
+    </a>
   );
 };
 
