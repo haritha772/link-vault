@@ -47,14 +47,20 @@ const SavedCard = ({
 
   const handleCopy = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     navigator.clipboard.writeText(item.url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleOpenLink = () => {
+    window.open(item.url, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <article
-      className={`group bg-card rounded-2xl border overflow-hidden hover:shadow-md transition-all duration-300 ${
+      onClick={handleOpenLink}
+      className={`group bg-card rounded-2xl border overflow-hidden hover:shadow-md transition-all duration-300 cursor-pointer ${
         isAiMatch
           ? "border-primary/40 ring-2 ring-primary/20 shadow-glow"
           : item.isHighlighted
@@ -144,11 +150,12 @@ const SavedCard = ({
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => e.stopPropagation()}
               >
                 <MoreVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
               <DropdownMenuItem onClick={() => onToggleHighlight?.(item.id)}>
                 <Star className="w-4 h-4 mr-2" />
                 {item.isHighlighted ? "Remove highlight" : "Highlight"}
@@ -212,7 +219,7 @@ const SavedCard = ({
         )}
 
         {/* Link + Copy */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           <a
             href={item.url}
             target="_blank"
