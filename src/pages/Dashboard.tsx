@@ -4,10 +4,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Flame, Plus, LogOut, LayoutGrid, List, Loader2, TrendingUp } from "lucide-react";
 import SavedCard from "@/components/SavedCard";
-import SearchBar from "@/components/SearchBar";
+import GlobalSearchBar from "@/components/GlobalSearchBar";
+import SmartFilters from "@/components/SmartFilters";
 import AiSearchBar from "@/components/AiSearchBar";
 import AddLinkModal from "@/components/AddLinkModal";
 import CollectionsSidebar from "@/components/CollectionsSidebar";
+import ForgottenGems from "@/components/ForgottenGems";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedLinks } from "@/hooks/useSavedLinks";
@@ -30,6 +32,8 @@ const Dashboard = () => {
     setSelectedCollection,
     showHighlightsOnly,
     setShowHighlightsOnly,
+    selectedIntent,
+    setSelectedIntent,
     addItem,
     deleteItem,
     toggleHighlight,
@@ -69,11 +73,6 @@ const Dashboard = () => {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8);
   }, [items]);
-
-  // Determine which items to show
-  const displayItems = aiResult?.matchedIds.length
-    ? filteredItems
-    : filteredItems;
 
   if (authLoading || !user) {
     return (
@@ -119,14 +118,55 @@ const Dashboard = () => {
 
         {/* Main content */}
         <main className="container mx-auto px-4 py-8">
-          {/* Page header */}
+          {/* Page header + Global Search */}
+          <div className="mb-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+              <div>
+                <h1 className="font-display text-3xl font-bold text-foreground mb-1">
+                  Your saves
+                </h1>
+                <p className="text-muted-foreground">
+                  {items.length} items saved • {filteredItems.length} showing
+                </p>
+              </div>
+              <div className="flex items-center gap-1 bg-secondary rounded-lg p-1">
+                <Button
+                  variant={viewMode === "grid" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("grid")}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode("list")}
+                >
+                  <List className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Global search bar */}
+            <GlobalSearchBar
+              items={items}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+            />
+          </div>
+
+          {/* Smart Filters */}
           <div className="mb-6">
-            <h1 className="font-display text-3xl font-bold text-foreground mb-2">
-              Your saves
-            </h1>
-            <p className="text-muted-foreground">
-              {items.length} items saved • {filteredItems.length} showing
-            </p>
+            <SmartFilters
+              selectedPlatforms={selectedPlatforms}
+              onPlatformToggle={handlePlatformToggle}
+              selectedIntent={selectedIntent}
+              onIntentChange={setSelectedIntent}
+              showHighlightsOnly={showHighlightsOnly}
+              onToggleHighlights={setShowHighlightsOnly}
+              totalItems={items.length}
+              filteredCount={filteredItems.length}
+            />
           </div>
 
           {/* Trending tags */}
@@ -160,32 +200,6 @@ const Dashboard = () => {
             />
           </div>
 
-          {/* Search and filters */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <SearchBar
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              selectedPlatforms={selectedPlatforms}
-              onPlatformToggle={handlePlatformToggle}
-            />
-            <div className="flex items-center gap-1 bg-secondary rounded-lg p-1">
-              <Button
-                variant={viewMode === "grid" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("grid")}
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-              >
-                <List className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-
           {/* Layout with sidebar */}
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Collections sidebar */}
@@ -204,11 +218,18 @@ const Dashboard = () => {
 
             {/* Content area */}
             <div className="flex-1 min-w-0">
+              {/* Forgotten Gems */}
+              <ForgottenGems
+                items={items}
+                onDelete={deleteItem}
+                onToggleHighlight={toggleHighlight}
+              />
+
               {isLoadingItems ? (
                 <div className="flex items-center justify-center py-16">
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
-              ) : displayItems.length > 0 ? (
+              ) : filteredItems.length > 0 ? (
                 <div
                   className={
                     viewMode === "grid"
@@ -216,7 +237,7 @@ const Dashboard = () => {
                       : "flex flex-col gap-4"
                   }
                 >
-                  {displayItems.map((item) => (
+                  {filteredItems.map((item) => (
                     <SavedCard
                       key={item.id}
                       item={item}
@@ -232,7 +253,7 @@ const Dashboard = () => {
                     <Flame className="w-8 h-8 text-muted-foreground" />
                   </div>
                   <h2 className="font-display text-xl font-semibold text-foreground mb-2">
-                    {searchQuery || selectedPlatforms.length > 0 || selectedCollection || showHighlightsOnly
+                    {searchQuery || selectedPlatforms.length > 0 || selectedCollection || showHighlightsOnly || selectedIntent !== "all"
                       ? "No results found"
                       : "No saves yet"}
                   </h2>

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { SavedItem, PlatformType } from "@/types/saved-item";
 import { mapSavedLink } from "@/types/saved-item";
+import type { IntentType } from "@/components/SmartFilters";
 
 export const useSavedLinks = (userId: string | undefined) => {
   const [items, setItems] = useState<SavedItem[]>([]);
@@ -11,6 +12,15 @@ export const useSavedLinks = (userId: string | undefined) => {
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
   const [showHighlightsOnly, setShowHighlightsOnly] = useState(false);
+  const [selectedIntent, setSelectedIntent] = useState<IntentType>("all");
+
+  // Intent keyword map
+  const intentKeywords: Record<Exclude<IntentType, "all">, string[]> = {
+    buy: ["buy", "price", "deal", "shop", "cart", "order", "discount", "sale", "flipkart", "amazon", "shopping"],
+    learn: ["tutorial", "guide", "how", "learn", "course", "lesson", "education", "tips"],
+    watch: ["video", "watch", "stream", "episode", "movie", "trailer", "clip"],
+    read: ["article", "blog", "read", "news", "story", "post", "review"],
+  };
 
   // Fetch saved links
   useEffect(() => {
@@ -52,9 +62,15 @@ export const useSavedLinks = (userId: string | undefined) => {
 
       const matchesHighlight = !showHighlightsOnly || item.isHighlighted;
 
-      return matchesSearch && matchesPlatform && matchesCollection && matchesHighlight;
+      const matchesIntent = selectedIntent === "all" || (() => {
+        const keywords = intentKeywords[selectedIntent];
+        const text = `${item.title} ${item.notes || ""} ${item.summary || ""} ${item.tags.join(" ")} ${(item.aiTags || []).join(" ")} ${item.platform}`.toLowerCase();
+        return keywords.some((kw) => text.includes(kw));
+      })();
+
+      return matchesSearch && matchesPlatform && matchesCollection && matchesHighlight && matchesIntent;
     });
-  }, [items, searchQuery, selectedPlatforms, selectedCollection, showHighlightsOnly]);
+  }, [items, searchQuery, selectedPlatforms, selectedCollection, showHighlightsOnly, selectedIntent]);
 
   const addItem = async (newItem: Omit<SavedItem, "id" | "createdAt" | "isHighlighted">) => {
     if (!userId) return;
@@ -200,6 +216,8 @@ export const useSavedLinks = (userId: string | undefined) => {
     setSelectedCollection,
     showHighlightsOnly,
     setShowHighlightsOnly,
+    selectedIntent,
+    setSelectedIntent,
     addItem,
     deleteItem,
     toggleHighlight,
